@@ -1,8 +1,15 @@
 // Supabase Client Helper
 export class SupabaseClient {
     constructor(url, key) {
-        this.url = url ? url.replace(/\/$/, '') : '';
-        this.key = key;
+        // Masukkan URL dan Key Anda langsung di bawah ini:
+        const DEFAULT_URL = "https://wfcreovzuyurqhnlxoxp.supabase.co"; // Ganti dengan URL Supabase Anda
+        const DEFAULT_KEY = "sb_publishable_J0QIsciVhceCpBZbodJWtA_vaDQqL5X...";     // Ganti dengan API Key Supabase Anda
+
+        const activeUrl = url || localStorage.getItem('supabase_url') || DEFAULT_URL;
+        const activeKey = key || localStorage.getItem('supabase_key') || DEFAULT_KEY;
+
+        this.url = activeUrl ? activeUrl.replace(/\/$/, '') : '';
+        this.key = activeKey;
     }
 
     isConfigured() {
@@ -96,19 +103,17 @@ export class SupabaseClient {
     async getActiveVisitors() {
         if (!this.isConfigured()) return null;
         try {
-            // Ambil semua data visitor, lalu hitung yang aktif dalam 60 detik terakhir di sisi client agar lebih akurat
             const res = await fetch(`${this.url}/rest/v1/visitors?select=visitor_id,last_seen`, {
                 headers: await this.headers()
             });
             if (res.ok) {
                 const data = await res.json();
                 const now = Date.now();
-                // Hitung pengunjung yang aktif dalam kurun waktu 60 detik ke belakang
                 const activeCount = data.filter(v => {
                     const lastSeenTime = new Date(v.last_seen).getTime();
                     return (now - lastSeenTime) <= 60000;
                 }).length;
-                return Math.max(activeCount, 1); // Minimal 1 (pengunjung saat ini)
+                return Math.max(activeCount, 1);
             }
         } catch (e) {
             console.error("Supabase active visitors error:", e);
