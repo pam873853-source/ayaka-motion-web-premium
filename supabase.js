@@ -1,4 +1,4 @@
-// Supabase Client Helper (Mendukung Service Key / SBP)
+// Supabase Client Helper
 export class SupabaseClient {
     constructor(url, key) {
         this.url = url ? url.replace(/\/$/, '') : '';
@@ -96,13 +96,19 @@ export class SupabaseClient {
     async getActiveVisitors() {
         if (!this.isConfigured()) return null;
         try {
-            const cutoff = new Date(Date.now() - 30000).toISOString();
-            const res = await fetch(`${this.url}/rest/v1/visitors?select=visitor_id&last_seen=gt.${cutoff}`, {
+            // Ambil semua data visitor, lalu hitung yang aktif dalam 60 detik terakhir di sisi client agar lebih akurat
+            const res = await fetch(`${this.url}/rest/v1/visitors?select=visitor_id,last_seen`, {
                 headers: await this.headers()
             });
             if (res.ok) {
                 const data = await res.json();
-                return data.length;
+                const now = Date.now();
+                // Hitung pengunjung yang aktif dalam kurun waktu 60 detik ke belakang
+                const activeCount = data.filter(v => {
+                    const lastSeenTime = new Date(v.last_seen).getTime();
+                    return (now - lastSeenTime) <= 60000;
+                }).length;
+                return Math.max(activeCount, 1); // Minimal 1 (pengunjung saat ini)
             }
         } catch (e) {
             console.error("Supabase active visitors error:", e);
